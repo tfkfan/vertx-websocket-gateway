@@ -8,6 +8,7 @@
         </encoder>
     </appender>
 
+    <logger name="io.vertx.ext.stomp" level="DEBUG"/>
 
     <root level="info">
         <appender-ref ref="STDOUT" />

@@ -6,13 +6,14 @@ var client = Stomp.client(url);
 
 submitBtn.onclick = (evt) => {
     client.send("/example_input", {}, wsInputTextArea.value);
+    wsInputTextArea.value = ""
 }
 
 client.connect([], () => {
     console.log("Connected");
     client.subscribe("/example_output", msg => {
-        console.log(msg)
-        wsOutputTextArea.value = msg
+        console.log(msg.body)
+        wsOutputTextArea.value = msg.body
     })
 }, (error) => {
     console.log("Failed to connect: " + error.headers.message)

@@ -7,6 +7,7 @@ import io.vertx.ext.stomp.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -16,7 +17,8 @@ import java.util.function.Consumer;
 @Slf4j
 public class StompWebsocketServer {
     private final StompServer stompServer;
-    private final Set<StompServerConnection> clients = new CopyOnWriteArraySet<>();
+    private final Set<StompServerConnection> clients = new HashSet<>();
+    private final Map<String, Map<String, String>> subscriptionsMap = new HashMap<>();
     private final Map<String, BiConsumer<StompWebsocketServer, String>> wsSubscriptions = new HashMap<>();
 
     public StompWebsocketServer(Vertx vertx) {
@@ -25,20 +27,30 @@ public class StompWebsocketServer {
                         .setWebsocketBridge(true)
                         .setWebsocketPath(Constants.WEBSOCKET_PATH))
                 .handler(StompServerHandler.create(vertx)
-                      /*  .connectHandler(frame -> {
-                            log.trace("New client connected");
-                            clients.add(frame.connection());
-                        })*/
+                        .connectHandler(new DefaultConnectHandler() {
+                            @Override
+                            public void handle(ServerFrame frame) {
+                                log.trace("New client connected");
+                                super.handle(frame);
+                                clients.add(frame.connection());
+                            }
+                        })
                         .closeHandler(frame -> {
                             log.trace("New client disconnected");
                             clients.remove(frame);
+                            subscriptionsMap.remove(frame.session());
                         })
-                        .destinationFactory((v, name) -> {
-                            if (name.startsWith("/example_input") || name.startsWith("/example_output"))
-                                return Destination.queue(vertx, name);
-                            return null;
+                        .destinationFactory((v, name) -> (name.startsWith("/example_input") || name.startsWith("/example_output")) ?
+                                Destination.topic(vertx, name) : null)
+                        .subscribeHandler(frame -> {
+                            log.trace("New client subscribed");
+                            Map<String, String> subscriptions = subscriptionsMap.get(frame.connection().session());
+                            if (subscriptions == null)
+                                subscriptions = new HashMap<>();
+                            subscriptions.put(frame.frame().getDestination(), frame.frame().getHeader("id"));
+                            subscriptionsMap.put(frame.connection().session(), subscriptions);
                         })
-                        .sendHandler(frame -> {
+                        .receivedFrameHandler(frame -> {
                             final BiConsumer<StompWebsocketServer, String> wsConsumer = wsSubscriptions.get(frame.frame().getDestination());
                             if (wsConsumer != null)
                                 wsConsumer.accept(this, frame.frame().getBodyAsString());
@@ -54,12 +66,15 @@ public class StompWebsocketServer {
     public void broadcast(String destination, String message) {
         final Frame broadcastFrame = new Frame()
                 .setDestination(destination)
-                .setBody(Buffer.buffer(message))
-                .addHeader("broadcast", "true")
-                .addHeader("timestamp", String.valueOf(System.currentTimeMillis()));
+                .setCommand(Command.MESSAGE)
+                .setBody(Buffer.buffer(message));
 
-        clients.forEach(connection -> {
+        clients.forEach((connection) -> {
             try {
+                final String subscriptionId = subscriptionsMap.get(connection.session())
+                        .get(destination);
+
+                broadcastFrame.setHeaders(Map.of("subscription", subscriptionId));
                 connection.write(broadcastFrame);
             } catch (Exception e) {
                 log.warn("Error broadcasting frame to client: {}", e.getMessage());

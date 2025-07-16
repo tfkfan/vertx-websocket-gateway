@@ -61,6 +61,9 @@ public class Application {
                                     .requestHandler(router)
                                     .webSocketHandshakeHandler(stompWebsocketServer.getStompServer().webSocketHandshakeHandler())
                                     .webSocketHandler(stompWebsocketServer.getStompServer().webSocketHandler())
+                                    .exceptionHandler(throwable -> {
+                                        log.error("Internal server error", throwable);
+                                    })
                                     .listen(8080);
                         }))
                 .onSuccess(srv -> log.info("Server started at {}", srv.actualPort()));
