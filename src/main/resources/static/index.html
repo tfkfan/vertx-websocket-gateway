@@ -4,10 +4,28 @@
     <meta charset="UTF-8">
     <title>Vertx WS Gateway</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <script src="/stomp.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<script src="/websocket.js"></script>
+<table>
+    <tbody>
+    <tr>
+        <td><label for="ws_output">Message from server (example topic) </label></td>
+        <td><textarea id="ws_output" disabled cols="50" rows="20"></textarea></td>
+    </tr>
+    <tr>
+        <td><label for="ws_input">Message to server</label></td>
+        <td><textarea id="ws_input" cols="50" rows="10"></textarea></td>
+    </tr>
+    <tr>
+        <td></td>
+        <td>
+            <button id="submit">Send</button>
+        </td>
+    </tr>
+    </tbody>
+</table>
 <script src="/app.js"></script>
 </body>
 </html>

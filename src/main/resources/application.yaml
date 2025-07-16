@@ -1,0 +1,2 @@
+kafka:
+  bootstrapServers: localhost:9094
