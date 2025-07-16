@@ -1,0 +1,10 @@
+version: '3.9'
+services:
+  kafka:
+    extends:
+      file: ./kafka.yml
+      service: kafka
+  kafka-console:
+    extends:
+      file: ./kafka.yml
+      service: console
