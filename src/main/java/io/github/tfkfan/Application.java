@@ -49,7 +49,10 @@ public class Application {
                         .flatMap(config -> {
                             final EventBus eventBus = vertx.eventBus();
                             final StompWebsocketServer srv = new StompWebsocketServerImpl(vertx, Constants.WEBSOCKET_PATH);
-
+                           /* final KafkaProducer<String, String> kafkaProducer = kafkaProducer(vertx, config, config.getString("kafka.bootstrapServers"));
+                            final KafkaConsumer<String, String> kafkaConsumer = kafkaConsumer(vertx, config, config.getString("kafka.bootstrapServers")).handler(record -> {
+                                eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, record.value());
+                            });*/
                             eventBus.<String>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
                                 log.info("Message from client: {}", message.body());
                                 srv.broadcast("/example_output", message.body() + " - BROADCAST");
