@@ -1,6 +1,5 @@
 package io.github.tfkfan;
 
-import com.sun.net.httpserver.HttpServer;
 import io.github.tfkfan.config.Constants;
 import io.github.tfkfan.stomp.StompWebsocketServer;
 import io.vertx.config.ConfigRetriever;
@@ -9,12 +8,9 @@ import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.stomp.Destination;
-import io.vertx.ext.stomp.StompServer;
-import io.vertx.ext.stomp.StompServerHandler;
-import io.vertx.ext.stomp.StompServerOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.healthchecks.HealthCheckHandler;
@@ -24,32 +20,42 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 
 @Slf4j
 public class Application {
     public static Future<JsonObject> loadConfig(Vertx vertx) {
         ConfigRetrieverOptions options = new ConfigRetrieverOptions()
                 .addStore(new ConfigStoreOptions()
-                        .setType("file")
-                        .setFormat("yaml")
-                        .setConfig(new JsonObject().put("path", "src/main/resources/application.yaml")))
+                        .setType(Constants.FILE)
+                        .setFormat(Constants.YAML)
+                        .setConfig(new JsonObject().put(Constants.PATH, "src/main/resources/application.yaml")))
                 .addStore(new ConfigStoreOptions()
-                        .setType("env"));
+                        .setType(Constants.ENV));
         return ConfigRetriever.create(vertx, options).getConfig();
+    }
+
+    public static void startupErrorHandler(Vertx vertx, Throwable e) {
+        if (vertx != null)
+            vertx.close();
+        log.error(e.getMessage(), e);
+        throw new RuntimeException(e);
     }
 
     public static void main(String[] args) {
         Vertx.clusteredVertx(new VertxOptions())
                 .flatMap(vertx -> loadConfig(vertx)
                         .flatMap(config -> {
+                            final EventBus eventBus = vertx.eventBus();
                             final StompWebsocketServer stompWebsocketServer = new StompWebsocketServer(vertx);
 
-                            stompWebsocketServer.subscribe("/example_input", (srv, msg) -> {
-                                log.info("MSG: {}", msg);
-                                srv.broadcast("/example_output", msg);
+                            eventBus.<String>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
+                                log.info("Message from client: {}", message.body());
+                                stompWebsocketServer.broadcast("/example_output", message.body() + " - BROADCAST");
+                            });
+                            stompWebsocketServer.subscribe("/example_input", (srv, connection, frame) -> {
+                                //Publish reply to all vertx instances with cluster manager
+                                eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, frame.getBodyAsString());
                             });
 
                             final Router router = Router.router(vertx);
@@ -57,16 +63,15 @@ public class Application {
                             router.get(Constants.HEALTH_PATH).handler(HealthCheckHandler.create(vertx));
                             router.get(Constants.READINESS_PATH).handler(HealthCheckHandler.create(vertx));
 
-                            return vertx.createHttpServer(new HttpServerOptions().setWebSocketSubProtocols(Arrays.asList("v10.stomp", "v11.stomp")))
+                            return stompWebsocketServer.initialize(
+                                            vertx.createHttpServer(new HttpServerOptions().setWebSocketSubProtocols(Arrays.asList("v10.stomp", "v11.stomp")))
+                                    )
                                     .requestHandler(router)
-                                    .webSocketHandshakeHandler(stompWebsocketServer.getStompServer().webSocketHandshakeHandler())
-                                    .webSocketHandler(stompWebsocketServer.getStompServer().webSocketHandler())
-                                    .exceptionHandler(throwable -> {
-                                        log.error("Internal server error", throwable);
-                                    })
+                                    .exceptionHandler(throwable -> log.error("Internal server error", throwable))
                                     .listen(8080);
                         }))
-                .onSuccess(srv -> log.info("Server started at {}", srv.actualPort()));
+                .onSuccess(srv -> log.info("Server started at {}", srv.actualPort()))
+                .onFailure(throwable -> startupErrorHandler(Vertx.currentContext().owner(), throwable));
     }
 
     private static KafkaConsumer<String, String> kafkaConsumer(Vertx vertx, JsonObject cnf, String bootstrapServers) {

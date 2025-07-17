@@ -3,23 +3,20 @@ package io.github.tfkfan.stomp;
 import io.github.tfkfan.config.Constants;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServer;
 import io.vertx.ext.stomp.*;
+import io.vertx.ext.web.Router;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 @Slf4j
 public class StompWebsocketServer {
     private final StompServer stompServer;
-    private final Set<StompServerConnection> clients = new HashSet<>();
-    private final Map<String, Map<String, String>> subscriptionsMap = new HashMap<>();
-    private final Map<String, BiConsumer<StompWebsocketServer, String>> wsSubscriptions = new HashMap<>();
+    private final Map<String, StompServerConnection> clients = new HashMap<>();
+    private final Map<String, Map<String, Destination>> destinationsMap = new HashMap<>();
+    private final Map<String, SubscriptionCallback> wsSubscriptions = new HashMap<>();
 
     public StompWebsocketServer(Vertx vertx) {
         stompServer = StompServer.create(vertx, new StompServerOptions()
@@ -32,57 +29,98 @@ public class StompWebsocketServer {
                             public void handle(ServerFrame frame) {
                                 log.trace("New client connected");
                                 super.handle(frame);
-                                clients.add(frame.connection());
+                                clients.put(frame.connection().session(), frame.connection());
                             }
                         })
                         .closeHandler(frame -> {
-                            log.trace("New client disconnected");
-                            clients.remove(frame);
-                            subscriptionsMap.remove(frame.session());
+                            log.trace("Client disconnected");
+                            clients.remove(frame.session());
                         })
-                        .destinationFactory((v, name) -> (name.startsWith("/example_input") || name.startsWith("/example_output")) ?
-                                Destination.topic(vertx, name) : null)
-                        .subscribeHandler(frame -> {
-                            log.trace("New client subscribed");
-                            Map<String, String> subscriptions = subscriptionsMap.get(frame.connection().session());
-                            if (subscriptions == null)
-                                subscriptions = new HashMap<>();
-                            subscriptions.put(frame.frame().getDestination(), frame.frame().getHeader("id"));
-                            subscriptionsMap.put(frame.connection().session(), subscriptions);
+                        .subscribeHandler(new DefaultSubscribeHandler() {
+                            @Override
+                            public void handle(ServerFrame serverFrame) {
+                                super.handle(serverFrame);
+                                final String destValue = serverFrame.frame().getDestination();
+                                final Destination dest = serverFrame.connection().handler().getDestination(destValue);
+                                final Map<String, Destination> destinations = destinationsMap.computeIfAbsent(destValue, k -> new HashMap<>());
+                                destinations.put(serverFrame.connection().session(), dest);
+                            }
                         })
                         .receivedFrameHandler(frame -> {
-                            final BiConsumer<StompWebsocketServer, String> wsConsumer = wsSubscriptions.get(frame.frame().getDestination());
+                            final SubscriptionCallback wsConsumer = wsSubscriptions.get(frame.frame().getDestination());
                             if (wsConsumer != null)
-                                wsConsumer.accept(this, frame.frame().getBodyAsString());
+                                wsConsumer.onMessage(this, frame.connection(),
+                                        frame.frame());
                             else log.debug("Destination not found");
                         }));
 
     }
 
-    public void subscribe(String destination, BiConsumer<StompWebsocketServer, String> messageConsumer) {
+    public void subscribe(String destination, SubscriptionCallback messageConsumer) {
         wsSubscriptions.put(destination, messageConsumer);
     }
 
+    public void send(String session, String destination, String message) {
+        final Map<String, Destination> destinations = destinationsMap.get(destination);
+
+        if (destinations == null) {
+            log.debug("Destination not found");
+            return;
+        }
+
+        final StompServerConnection connection = clients.get(session);
+        if (connection == null) {
+            log.debug("Connection not found");
+            return;
+        }
+
+        final Destination dest = destinations.get(session);
+        if (dest == null) {
+            log.debug("Destination not found for session {}", session);
+            return;
+        }
+        try {
+            final Frame frame = new Frame()
+                    .setDestination(destination)
+                    .setCommand(Command.MESSAGE)
+                    .setBody(Buffer.buffer(message));
+            dest.dispatch(connection, frame);
+        } catch (Exception e) {
+            log.warn("Error broadcasting frame to client: {}", e.getMessage());
+        }
+
+    }
+
     public void broadcast(String destination, String message) {
-        final Frame broadcastFrame = new Frame()
+        final Map<String, Destination> destinations = destinationsMap.get(destination);
+
+        if (destinations == null) {
+            log.debug("Destination not found");
+            return;
+        }
+
+        final Frame frame = new Frame()
                 .setDestination(destination)
                 .setCommand(Command.MESSAGE)
                 .setBody(Buffer.buffer(message));
 
-        clients.forEach((connection) -> {
+        clients.forEach((session, connection) -> {
             try {
-                final String subscriptionId = subscriptionsMap.get(connection.session())
-                        .get(destination);
+                final Destination dest = destinations.get(session);
+                if (dest == null) {
+                    log.debug("Destination not found for session {}", session);
+                    return;
+                }
 
-                broadcastFrame.setHeaders(Map.of("subscription", subscriptionId));
-                connection.write(broadcastFrame);
+                dest.dispatch(connection, frame);
             } catch (Exception e) {
                 log.warn("Error broadcasting frame to client: {}", e.getMessage());
             }
         });
     }
 
-    public StompServer getStompServer() {
-        return stompServer;
+    public HttpServer initialize(HttpServer server) {
+        return server.webSocketHandshakeHandler(stompServer.webSocketHandshakeHandler())
+                .webSocketHandler(stompServer.webSocketHandler());
     }
 }

@@ -5,6 +5,11 @@ public interface Constants {
     String READINESS_PATH = "/readiness";
     String WEBSOCKET_PATH = "/ws";
     String STATIC_FOLDER_PATH = "static";
+    String FILE = "file";
+    String YAML = "yaml";
+    String PATH = "path";
+    String ENV = "env";
+    String VERTX_WS_BROADCAST_CHANNEL = "ws.broadcast.channel";
 
     String KAFKA_BOOTSTRAPSERVERS_ENV = "KAFKA_BOOTSTRAPSERVERS";
 
