@@ -2,6 +2,7 @@ package io.github.tfkfan;
 
 import io.github.tfkfan.config.Constants;
 import io.github.tfkfan.stomp.StompWebsocketServer;
+import io.github.tfkfan.stomp.impl.StompWebsocketServerImpl;
 import io.vertx.config.ConfigRetriever;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
@@ -47,7 +48,7 @@ public class Application {
                 .flatMap(vertx -> loadConfig(vertx)
                         .flatMap(config -> {
                             final EventBus eventBus = vertx.eventBus();
-                            final StompWebsocketServer stompWebsocketServer = new StompWebsocketServer(vertx);
+                            final StompWebsocketServer stompWebsocketServer = new StompWebsocketServerImpl(vertx);
 
                             eventBus.<String>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
                                 log.info("Message from client: {}", message.body());
