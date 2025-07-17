@@ -48,7 +48,7 @@ public class Application {
                 .flatMap(vertx -> loadConfig(vertx)
                         .flatMap(config -> {
                             final EventBus eventBus = vertx.eventBus();
-                            final StompWebsocketServer srv = new StompWebsocketServerImpl(vertx);
+                            final StompWebsocketServer srv = new StompWebsocketServerImpl(vertx, Constants.WEBSOCKET_PATH);
 
                             eventBus.<String>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
                                 log.info("Message from client: {}", message.body());

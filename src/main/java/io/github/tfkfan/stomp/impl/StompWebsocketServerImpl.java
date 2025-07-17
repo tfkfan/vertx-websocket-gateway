@@ -18,11 +18,11 @@ public class StompWebsocketServerImpl implements StompWebsocketServer {
     private final Map<String, StompServerConnection> sessionsMap = new HashMap<>(1000);
     private final Map<String, SubscriptionCallback> subscriptionsMap = new HashMap<>();
 
-    public StompWebsocketServerImpl(Vertx vertx) {
+    public StompWebsocketServerImpl(Vertx vertx, String wsPath) {
         stompServer = StompServer.create(vertx, new StompServerOptions()
                         .setPort(-1)
                         .setWebsocketBridge(true)
-                        .setWebsocketPath(Constants.WEBSOCKET_PATH))
+                        .setWebsocketPath(wsPath))
                 .handler(StompServerHandler.create(vertx)
                         .connectHandler(new DefaultConnectHandler() {
                             @Override
@@ -71,29 +71,11 @@ public class StompWebsocketServerImpl implements StompWebsocketServer {
         } catch (Exception e) {
             log.warn("Error broadcasting frame to client: {}", e.getMessage());
         }
-
     }
 
     @Override
     public void broadcast(String destination, String message) {
-        final Frame frame = new Frame()
-                .setDestination(destination)
-                .setCommand(Command.MESSAGE)
-                .setBody(Buffer.buffer(message));
-
-        sessionsMap.forEach((session, connection) -> {
-            try {
-                final Destination dest = connection.handler().getDestination(destination);
-                if (dest == null) {
-                    log.debug("Destination not found for session {}", session);
-                    return;
-                }
-
-                dest.dispatch(connection, frame);
-            } catch (Exception e) {
-                log.warn("Error broadcasting frame to client: {}", e.getMessage());
-            }
-        });
+        sessionsMap.forEach((session, connection) -> send(session, destination, message));
     }
 
     @Override
