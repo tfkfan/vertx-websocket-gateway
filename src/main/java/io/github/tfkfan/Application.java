@@ -48,15 +48,15 @@ public class Application {
                 .flatMap(vertx -> loadConfig(vertx)
                         .flatMap(config -> {
                             final EventBus eventBus = vertx.eventBus();
-                            final StompWebsocketServer stompWebsocketServer = new StompWebsocketServerImpl(vertx);
+                            final StompWebsocketServer srv = new StompWebsocketServerImpl(vertx);
 
                             eventBus.<String>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
                                 log.info("Message from client: {}", message.body());
-                                stompWebsocketServer.broadcast("/example_output", message.body() + " - BROADCAST");
+                                srv.broadcast("/example_output", message.body() + " - BROADCAST");
                             });
-                            stompWebsocketServer.subscribe("/example_input", (srv, connection, frame) -> {
+                            srv.subscribe("/example_input", (frame) -> {
                                 //Publish reply to all vertx instances with cluster manager
-                                eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, frame.getBodyAsString());
+                                eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, frame.frame().getBodyAsString());
                             });
 
                             final Router router = Router.router(vertx);
@@ -64,7 +64,7 @@ public class Application {
                             router.get(Constants.HEALTH_PATH).handler(HealthCheckHandler.create(vertx));
                             router.get(Constants.READINESS_PATH).handler(HealthCheckHandler.create(vertx));
 
-                            return stompWebsocketServer.initialize(
+                            return srv.initialize(
                                             vertx.createHttpServer(new HttpServerOptions().setWebSocketSubProtocols(Arrays.asList("v10.stomp", "v11.stomp")))
                                     )
                                     .requestHandler(router)

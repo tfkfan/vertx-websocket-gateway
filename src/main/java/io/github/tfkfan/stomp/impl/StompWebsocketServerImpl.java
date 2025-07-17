@@ -15,8 +15,8 @@ import java.util.Map;
 @Slf4j
 public class StompWebsocketServerImpl implements StompWebsocketServer {
     private final StompServer stompServer;
-    private final Map<String, StompServerConnection> sessionsMap = new HashMap<>();
-    private final Map<String, SubscriptionCallback> wsSubscriptions = new HashMap<>();
+    private final Map<String, StompServerConnection> sessionsMap = new HashMap<>(1000);
+    private final Map<String, SubscriptionCallback> subscriptionsMap = new HashMap<>();
 
     public StompWebsocketServerImpl(Vertx vertx) {
         stompServer = StompServer.create(vertx, new StompServerOptions()
@@ -37,17 +37,16 @@ public class StompWebsocketServerImpl implements StompWebsocketServer {
                             sessionsMap.remove(frame.session());
                         })
                         .receivedFrameHandler(frame -> {
-                            final SubscriptionCallback wsConsumer = wsSubscriptions.get(frame.frame().getDestination());
+                            final SubscriptionCallback wsConsumer = subscriptionsMap.get(frame.frame().getDestination());
                             if (wsConsumer != null)
-                                wsConsumer.onMessage(this, frame.connection(),
-                                        frame.frame());
+                                wsConsumer.onMessage(frame);
                             else log.debug("Destination not found");
                         }));
     }
 
     @Override
     public void subscribe(String destination, SubscriptionCallback messageConsumer) {
-        wsSubscriptions.put(destination, messageConsumer);
+        subscriptionsMap.put(destination, messageConsumer);
     }
 
     @Override
