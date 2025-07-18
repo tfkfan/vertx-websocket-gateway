@@ -35,12 +35,14 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
                 eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, frame.frame().getBodyAsString());
             });
 
-           /* final KafkaProducer<String, String> kafkaProducer = kafkaProducer(vertx, config, config.getString("kafka.bootstrapServers"));
-        final KafkaConsumer<String, String> kafkaConsumer = kafkaConsumer(vertx, config, config.getString("kafka.bootstrapServers")).handler(record -> {
+           /*
+           final JsonObject kafkaProps = config.getJsonObject(Constants.KAFKA_PROP);
+           final KafkaProducer<String, String> kafkaProducer = kafkaProducer(vertx, config, kafkaProps.getString(Constants.KAFKA_BOOTSTRAP_SERVERS_PROP));
+        final KafkaConsumer<String, String> kafkaConsumer = kafkaConsumer(vertx, config, kafkaProps.getString(Constants.KAFKA_BOOTSTRAP_SERVERS_PROP)).handler(record -> {
             eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, record.value());
         });*/
 
-            buildHttpServer(buildRouter(), config().getInteger(Constants.SERVER_PORT_PROP))
+            buildHttpServer(buildRouter(), config().getJsonObject(Constants.SERVER_PROP).getInteger(Constants.PORT_PROP))
                     .onSuccess(srv -> log.info("Server started at {}", srv.actualPort()))
                     .onFailure(startPromise::fail);
         } catch (Exception e) {

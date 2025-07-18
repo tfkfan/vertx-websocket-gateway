@@ -19,6 +19,8 @@ public interface Constants {
     String KAFKA_AUTO_OFFSET_RESET_PROP = "auto.offset.reset";
     String KAFKA_AUTO_COMMIT_PROP = "enable.auto.commit";
     String KAFKA_ACKS_PROP = "acks";
-    String KAFKA_BOOTSTRAP_SERVERS_PROP = "bootstrap.servers";
-    String SERVER_PORT_PROP = "server.port";
+    String KAFKA_PROP = "kafka";
+    String KAFKA_BOOTSTRAP_SERVERS_PROP = "bootstrap-servers";
+    String SERVER_PROP = "server";
+    String PORT_PROP = "port";
 }
