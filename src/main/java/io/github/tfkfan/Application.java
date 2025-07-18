@@ -1,26 +1,20 @@
 package io.github.tfkfan;
 
 import io.github.tfkfan.config.Constants;
-import io.github.tfkfan.stomp.StompWebsocketServer;
-import io.github.tfkfan.stomp.impl.StompWebsocketServerImpl;
+import io.github.tfkfan.verticle.WebsocketGatewayVerticle;
 import io.vertx.config.ConfigRetriever;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.handler.StaticHandler;
-import io.vertx.ext.web.healthchecks.HealthCheckHandler;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.producer.KafkaProducer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.util.Arrays;
 import java.util.Map;
 
 @Slf4j
@@ -46,35 +40,9 @@ public class Application {
     public static void main(String[] args) {
         Vertx.clusteredVertx(new VertxOptions())
                 .flatMap(vertx -> loadConfig(vertx)
-                        .flatMap(config -> {
-                            final EventBus eventBus = vertx.eventBus();
-                            final StompWebsocketServer srv = new StompWebsocketServerImpl(vertx, Constants.WEBSOCKET_PATH);
-                           /* final KafkaProducer<String, String> kafkaProducer = kafkaProducer(vertx, config, config.getString("kafka.bootstrapServers"));
-                            final KafkaConsumer<String, String> kafkaConsumer = kafkaConsumer(vertx, config, config.getString("kafka.bootstrapServers")).handler(record -> {
-                                eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, record.value());
-                            });*/
-                            eventBus.<String>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
-                                log.info("Message from client: {}", message.body());
-                                srv.broadcast("/example_output", message.body() + " - BROADCAST");
-                            });
-                            srv.subscribe("/example_input", (frame) -> {
-                                //Publish reply to all vertx instances with cluster manager
-                                eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, frame.frame().getBodyAsString());
-                            });
-
-                            final Router router = Router.router(vertx);
-                            router.route().handler(StaticHandler.create(Constants.STATIC_FOLDER_PATH));
-                            router.get(Constants.HEALTH_PATH).handler(HealthCheckHandler.create(vertx));
-                            router.get(Constants.READINESS_PATH).handler(HealthCheckHandler.create(vertx));
-
-                            return srv.initialize(
-                                            vertx.createHttpServer(new HttpServerOptions().setWebSocketSubProtocols(Arrays.asList("v10.stomp", "v11.stomp")))
-                                    )
-                                    .requestHandler(router)
-                                    .exceptionHandler(throwable -> log.error("Internal server error", throwable))
-                                    .listen(8080);
-                        }))
-                .onSuccess(srv -> log.info("Server started at {}", srv.actualPort()))
+                        .flatMap(config -> vertx.deployVerticle(WebsocketGatewayVerticle.class,
+                                new DeploymentOptions().setConfig(config))
+                        ))
                 .onFailure(throwable -> startupErrorHandler(Vertx.currentContext().owner(), throwable));
     }
 

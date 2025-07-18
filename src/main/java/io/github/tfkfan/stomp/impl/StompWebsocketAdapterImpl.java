@@ -1,7 +1,6 @@
 package io.github.tfkfan.stomp.impl;
 
-import io.github.tfkfan.config.Constants;
-import io.github.tfkfan.stomp.StompWebsocketServer;
+import io.github.tfkfan.stomp.StompWebsocketAdapter;
 import io.github.tfkfan.stomp.SubscriptionCallback;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -13,12 +12,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-public class StompWebsocketServerImpl implements StompWebsocketServer {
+public class StompWebsocketAdapterImpl implements StompWebsocketAdapter {
     private final StompServer stompServer;
     private final Map<String, StompServerConnection> sessionsMap = new HashMap<>(1000);
     private final Map<String, SubscriptionCallback> subscriptionsMap = new HashMap<>();
 
-    public StompWebsocketServerImpl(Vertx vertx, String wsPath) {
+    public StompWebsocketAdapterImpl(Vertx vertx, String wsPath) {
         stompServer = StompServer.create(vertx, new StompServerOptions()
                         .setPort(-1)
                         .setWebsocketBridge(true)
