@@ -1,0 +1,31 @@
+version: '3.9'
+services:
+  infinispan-node1:
+    image: infinispan/server:latest
+    container_name: infinispan-node1
+    ports:
+      - "11222:11222"
+    environment:
+      - JGROUPS_DISCOVERY_PROTOCOL=TCPPING
+      - JGROUPS_TCPPING_INITIAL_HOSTS=infinispan-node1[7800],infinispan-node2[7800]
+      - USER=admin
+      - PASS=password
+    networks:
+      - infinispan-net
+
+  infinispan-node2:
+    image: infinispan/server:latest
+    container_name: infinispan-node2
+    ports:
+      - "11223:11222"
+    environment:
+      - JGROUPS_DISCOVERY_PROTOCOL=TCPPING
+      - JGROUPS_TCPPING_INITIAL_HOSTS=infinispan-node1[7800],infinispan-node2[7800]
+      - USER=admin
+      - PASS=password
+    networks:
+      - infinispan-net
+
+networks:
+  infinispan-net:
+    driver: bridge

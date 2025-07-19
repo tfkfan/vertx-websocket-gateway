@@ -4,13 +4,14 @@
         <!-- encoders are assigned the type
              ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
-            <pattern>%cyan(%d{HH:mm:ss.SSS}) %white([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n</pattern>
+            <pattern>%cyan(%d{HH:mm:ss.SSS}) %white([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n
+            </pattern>
         </encoder>
     </appender>
-
+    <logger name="io.github.tfkfan" level="TRACE"/>
     <logger name="io.vertx.ext.stomp" level="DEBUG"/>
 
     <root level="info">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDOUT"/>
     </root>
 </configuration>

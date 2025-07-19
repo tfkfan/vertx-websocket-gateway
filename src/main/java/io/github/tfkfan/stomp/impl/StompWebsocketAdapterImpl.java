@@ -1,7 +1,7 @@
 package io.github.tfkfan.stomp.impl;
 
 import io.github.tfkfan.stomp.StompWebsocketAdapter;
-import io.github.tfkfan.stomp.SubscriptionCallback;
+import io.github.tfkfan.stomp.StompMessageConsumer;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
@@ -15,7 +15,7 @@ import java.util.Map;
 public class StompWebsocketAdapterImpl implements StompWebsocketAdapter {
     private final StompServer stompServer;
     private final Map<String, StompServerConnection> sessionsMap = new HashMap<>(1000);
-    private final Map<String, SubscriptionCallback> subscriptionsMap = new HashMap<>();
+    private final Map<String, StompMessageConsumer> subscriptionsMap = new HashMap<>();
 
     public StompWebsocketAdapterImpl(Vertx vertx, String wsPath) {
         stompServer = StompServer.create(vertx, new StompServerOptions()
@@ -26,17 +26,19 @@ public class StompWebsocketAdapterImpl implements StompWebsocketAdapter {
                         .connectHandler(new DefaultConnectHandler() {
                             @Override
                             public void handle(ServerFrame frame) {
-                                log.trace("New client connected");
+                                final String session = frame.connection().session();
+                                log.trace("New client connected: {}", session);
                                 super.handle(frame);
-                                sessionsMap.put(frame.connection().session(), frame.connection());
+                                sessionsMap.put(session, frame.connection());
                             }
                         })
                         .closeHandler(frame -> {
-                            log.trace("Client disconnected");
-                            sessionsMap.remove(frame.session());
+                            final String session = frame.session();
+                            log.trace("Client disconnected: {}", session);
+                            sessionsMap.remove(session);
                         })
                         .receivedFrameHandler(frame -> {
-                            final SubscriptionCallback wsConsumer = subscriptionsMap.get(frame.frame().getDestination());
+                            final StompMessageConsumer wsConsumer = subscriptionsMap.get(frame.frame().getDestination());
                             if (wsConsumer != null)
                                 wsConsumer.onMessage(frame);
                             else log.debug("Destination not found");
@@ -44,7 +46,7 @@ public class StompWebsocketAdapterImpl implements StompWebsocketAdapter {
     }
 
     @Override
-    public void subscribe(String destination, SubscriptionCallback messageConsumer) {
+    public void subscribe(String destination, StompMessageConsumer messageConsumer) {
         subscriptionsMap.put(destination, messageConsumer);
     }
 
