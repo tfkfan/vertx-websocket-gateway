@@ -34,3 +34,7 @@ Example of message:
 ```
 
 Recipient is UUID ws session indentifier printed in server console when new client is connected
+
+## Requirements
+
+All kafka topic used by websocket gateway should be adjusted with low retention.ms. One minute is enough
