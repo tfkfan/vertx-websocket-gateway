@@ -6,15 +6,21 @@ import io.github.tfkfan.stomp.impl.StompWebsocketAdapterImpl;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.healthchecks.HealthCheckHandler;
+import io.vertx.kafka.client.consumer.KafkaConsumer;
+import io.vertx.kafka.client.producer.KafkaProducer;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.Arrays;
+import java.util.Map;
 
 @Slf4j
 public final class WebsocketGatewayVerticle extends AbstractVerticle {
@@ -69,5 +75,23 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
 
     private HttpServerOptions buildHttpServerOptions() {
         return new HttpServerOptions().setWebSocketSubProtocols(Arrays.asList("v10.stomp", "v11.stomp"));
+    }
+
+    private KafkaConsumer<String, String> kafkaConsumer(Vertx vertx, JsonObject cnf, String bootstrapServers) {
+        return KafkaConsumer.create(vertx, Map.of(Constants.KAFKA_BOOTSTRAP_SERVERS_PROP,
+                cnf.getString(Constants.KAFKA_BOOTSTRAPSERVERS_ENV, bootstrapServers),
+                Constants.KAFKA_KEY_SERIALIZER_PROP, StringSerializer.class.getName(),
+                Constants.KAFKA_VALUE_SERIALIZER_PROP, StringSerializer.class.getName(),
+                Constants.KAFKA_GROUP_ID_PROP, "my_group",
+                Constants.KAFKA_AUTO_OFFSET_RESET_PROP, "earliest",
+                Constants.KAFKA_AUTO_COMMIT_PROP, "true"));
+    }
+
+    private KafkaProducer<String, String> kafkaProducer(Vertx vertx, JsonObject cnf, String bootstrapServers) {
+        return KafkaProducer.create(vertx, Map.of(Constants.KAFKA_BOOTSTRAP_SERVERS_PROP,
+                cnf.getString(Constants.KAFKA_BOOTSTRAPSERVERS_ENV, bootstrapServers),
+                Constants.KAFKA_KEY_SERIALIZER_PROP, StringSerializer.class.getName(),
+                Constants.KAFKA_VALUE_SERIALIZER_PROP, StringSerializer.class.getName(),
+                Constants.KAFKA_ACKS_PROP, "1"));
     }
 }
