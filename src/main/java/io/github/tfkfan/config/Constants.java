@@ -9,7 +9,11 @@ public interface Constants {
     String YAML = "yaml";
     String PATH = "path";
     String ENV = "env";
+
     String VERTX_WS_BROADCAST_CHANNEL = "ws.broadcast.channel";
+    String KAFKA_WEBSOCKET_OUTPUT_TOPIC = "websocket_gateway_output_topic";
+    String KAFKA_WEBSOCKET_INPUT_TOPIC = "websocket_gateway_input_topic";
+    String STOMP_INPUT_CHANNEL = "/example_input";
 
     String KAFKA_BOOTSTRAPSERVERS_ENV = "KAFKA_BOOTSTRAPSERVERS";
 

@@ -37,13 +37,13 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
             kafkaConsumer = new GatewayKafkaConsumer(vertx, config, kafkaProps.getString(Constants.BOOTSTRAP_SERVERS_PROP));
             kafkaProducer = new GatewayKafkaProducer(vertx, config, kafkaProps.getString(Constants.BOOTSTRAP_SERVERS_PROP));
 
-            kafkaConsumer.subscribe("websocket_gateway_output_topic", record -> {
-                final GatewayMessage message = record.value();
+            kafkaConsumer.subscribe(Constants.KAFKA_WEBSOCKET_OUTPUT_TOPIC, record -> {
                 /*
                 Publish reply to all vertx instances with cluster manager.
                 Only one node contain required ws session, so all nodes should process the message.
                 Another option - create dynamic consumers per session and use 'eventBus.send' method
                  */
+                final GatewayMessage message = record.value();
                 eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, JsonObject.mapFrom(message));
             });
             eventBus.<JsonObject>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
@@ -51,7 +51,7 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
                 log.info("Message from: {}", msg.getSender());
                 srv.send(msg.getRecipient(), msg.getStompChannel(), msg.getMessage());
             });
-            srv.subscribe("/example_input", (frame) -> kafkaProducer.send("websocket_gateway_input_topic", frame.frame().getBodyAsString()));
+            srv.subscribe(Constants.STOMP_INPUT_CHANNEL, (frame) -> kafkaProducer.send(Constants.KAFKA_WEBSOCKET_INPUT_TOPIC, frame.frame().getBodyAsString()));
 
             buildHttpServer(buildRouter(), config().getJsonObject(Constants.SERVER_PROP).getInteger(Constants.PORT_PROP))
                     .onSuccess(srv -> log.info("Server started at {}", srv.actualPort()))

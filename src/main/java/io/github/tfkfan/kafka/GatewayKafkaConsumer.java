@@ -8,24 +8,40 @@ import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.Map;
 
 @Slf4j
 public class GatewayKafkaConsumer {
-    private final Vertx vertx;
     private final KafkaConsumer<String, GatewayMessage> consumer;
 
     public GatewayKafkaConsumer(Vertx vertx, JsonObject config, String bootstrapServers) {
-        this.vertx = vertx;
         consumer = kafkaConsumer(vertx, config, bootstrapServers)
                 .exceptionHandler(err -> log.error("Kafka consumer error", err));
     }
 
     public void subscribe(final String topic, Handler<KafkaConsumerRecord<String, GatewayMessage>> handler) {
-        consumer.handler(handler);
+        consumer.handler(record -> {
+            if (validateMessage(record.value()))
+                handler.handle(record);
+        });
         consumer.subscribe(topic);
+    }
+
+    private boolean validateMessage(GatewayMessage message) {
+        if (message.getRecipient() == null) {
+            log.warn("Message recipient is null");
+            return false;
+        }
+        if (message.getSender() == null) {
+            log.warn("Message sender is null");
+            return false;
+        }
+        if (message.getStompChannel() == null) {
+            log.warn("Message stomp channel is null");
+            return false;
+        }
+        return true;
     }
 
     private KafkaConsumer<String, GatewayMessage> kafkaConsumer(Vertx vertx, JsonObject cnf, String bootstrapServers) {
