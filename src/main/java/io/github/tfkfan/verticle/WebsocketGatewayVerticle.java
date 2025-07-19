@@ -41,7 +41,8 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
                 final GatewayMessage message = record.value();
                 /*
                 Publish reply to all vertx instances with cluster manager.
-                Only one node contain required ws session, so all nodes should process the message
+                Only one node contain required ws session, so all nodes should process the message.
+                Another option - create dynamic consumers per session and use 'eventBus.send' method
                  */
                 eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, JsonObject.mapFrom(message));
             });
