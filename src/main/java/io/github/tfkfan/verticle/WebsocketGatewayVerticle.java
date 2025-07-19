@@ -49,7 +49,7 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
             eventBus.<JsonObject>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
                 final GatewayMessage msg = message.body().mapTo(GatewayMessage.class);
                 log.info("Message from: {}", msg.getSender());
-                srv.send(msg.getRecipient(), msg.getStompChannel(), msg.getMessage() + " - BROADCAST");
+                srv.send(msg.getRecipient(), msg.getStompChannel(), msg.getMessage());
             });
             srv.subscribe("/example_input", (frame) -> kafkaProducer.send("websocket_gateway_input_topic", frame.frame().getBodyAsString()));
 

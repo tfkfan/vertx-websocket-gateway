@@ -23,7 +23,7 @@ public interface Constants {
     String KAFKA_ACKS_PROP = "acks";
     String KAFKA_PROP = "kafka";
     String KAFKA_BOOTSTRAP_SERVERS_PROP = "bootstrap.servers";
-    String BOOTSTRAP_SERVERS_PROP = "bootstrapServers";
+    String BOOTSTRAP_SERVERS_PROP = "bootstrap-servers";
     String SERVER_PROP = "server";
     String PORT_PROP = "port";
 }
