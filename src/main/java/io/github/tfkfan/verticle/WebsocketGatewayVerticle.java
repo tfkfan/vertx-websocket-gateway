@@ -4,6 +4,7 @@ import io.github.tfkfan.config.Constants;
 import io.github.tfkfan.kafka.GatewayKafkaConsumer;
 import io.github.tfkfan.kafka.GatewayKafkaProducer;
 import io.github.tfkfan.kafka.message.GatewayOutputMessage;
+import io.github.tfkfan.metrics.MonitorEndpoint;
 import io.github.tfkfan.stomp.StompWebsocketAdapter;
 import io.github.tfkfan.stomp.impl.StompWebsocketAdapterImpl;
 import io.vertx.core.AbstractVerticle;
@@ -17,6 +18,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.healthchecks.HealthCheckHandler;
+import io.vertx.micrometer.backends.BackendRegistries;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
@@ -41,10 +43,7 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
                     .stream()
                     .filter(it -> it instanceof String)
                     .map(it -> ((String) it).split(Constants.DIVIDER))
-                    .collect(Collectors.toMap(
-                            it -> it[0],
-                            it -> it[1]
-                    ));
+                    .collect(Collectors.toMap(it -> it[0], it -> it[1]));
             srv = new StompWebsocketAdapterImpl(vertx, Constants.WEBSOCKET_PATH);
             kafkaConsumer = new GatewayKafkaConsumer(vertx, config, kafkaProps.getString(Constants.BOOTSTRAP_SERVERS_PROP));
             kafkaProducer = new GatewayKafkaProducer(vertx, config, kafkaProps.getString(Constants.BOOTSTRAP_SERVERS_PROP));
@@ -66,7 +65,7 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
                 srv.subscribe(key, (frame) -> kafkaProducer.send(value, frame.frame().getBodyAsString()));
                 log.info("Application mapping stomp {} to kafka {} has been set", key, value);
             });
-
+            srv.meterBinder().bindTo(BackendRegistries.getDefaultNow());
             buildHttpServer(buildRouter(), config().getJsonObject(Constants.SERVER_PROP).getInteger(Constants.PORT_PROP))
                     .onSuccess(srv -> log.info("Server started at {}", srv.actualPort()))
                     .onFailure(startPromise::fail);
@@ -78,6 +77,7 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
 
     private Router buildRouter() {
         final Router router = Router.router(vertx);
+        new MonitorEndpoint().create(router);
         router.route().handler(StaticHandler.create(Constants.STATIC_FOLDER_PATH));
         router.get(Constants.HEALTH_PATH).handler(HealthCheckHandler.create(vertx));
         router.get(Constants.READINESS_PATH).handler(HealthCheckHandler.create(vertx));

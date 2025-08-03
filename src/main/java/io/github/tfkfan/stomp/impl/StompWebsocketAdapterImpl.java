@@ -2,6 +2,10 @@ package io.github.tfkfan.stomp.impl;
 
 import io.github.tfkfan.stomp.StompWebsocketAdapter;
 import io.github.tfkfan.stomp.StompMessageConsumer;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
@@ -43,6 +47,20 @@ public class StompWebsocketAdapterImpl implements StompWebsocketAdapter {
                                 wsConsumer.onMessage(frame);
                             else log.debug("Destination not found");
                         }));
+    }
+
+    @Override
+    public MeterBinder meterBinder() {
+        return meterRegistry -> {
+            Gauge.builder("ws.sessions.count", sessionsMap::size)
+                    .description("websocket sessions count")
+                    .strongReference(true)
+                    .register(meterRegistry);
+            Gauge.builder("ws.stomp.subscriptions.count", subscriptionsMap::size)
+                    .description("websocket stomp subscriptions count")
+                    .strongReference(true)
+                    .register(meterRegistry);
+        };
     }
 
     @Override

@@ -21,7 +21,7 @@ docker compose -f ./docker/all.yml up -d
 
 Then run java app. You can produce message to websocket_gateway_output_topic using redpanda console which available at http://localhost:8085
 
-Example of message:
+Example of output message:
 
 ```json
 {
@@ -32,6 +32,18 @@ Example of message:
   "recipient": "0a32e82b-45e9-4250-b430-e4acb4980746"
 }
 ```
+
+Example of input (ws) message:
+
+```json
+{
+  "sender": "sender sample",
+  "message": "message sample",
+  "createdAt": "..."
+}
+```
+
+Notice, input messages are not conceived to be responded
 
 Recipient is UUID ws session indentifier printed in server console when new client is connected
 

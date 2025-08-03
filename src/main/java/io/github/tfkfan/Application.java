@@ -1,6 +1,7 @@
 package io.github.tfkfan;
 
 import io.github.tfkfan.config.Constants;
+import io.github.tfkfan.metrics.MonitorableVertx;
 import io.github.tfkfan.verticle.WebsocketGatewayVerticle;
 import io.vertx.config.ConfigRetriever;
 import io.vertx.config.ConfigRetrieverOptions;
@@ -33,7 +34,7 @@ public class Application {
     }
 
     public static void main(String[] args) {
-        Vertx.clusteredVertx(new VertxOptions())
+        new MonitorableVertx().build()
                 .flatMap(vertx -> loadConfig(vertx)
                         .flatMap(config -> vertx.deployVerticle(WebsocketGatewayVerticle.class,
                                 new DeploymentOptions().setConfig(config))
