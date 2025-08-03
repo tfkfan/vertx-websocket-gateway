@@ -35,7 +35,6 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
     @Override
     public void start(Promise<Void> startPromise) {
         try {
-            final EventBus eventBus = vertx.eventBus();
             final JsonObject kafkaProps = config().getJsonObject(Constants.KAFKA_PROP);
             final Map<String, String> appInputMapping = config()
                     .getJsonArray(Constants.APP_INPUT_MAPPING_ENV, new JsonArray().add("%s:%s".formatted(Constants.STOMP_DEFAULT_INPUT_CHANNEL, Constants.KAFKA_DEFAULT_INPUT_TOPIC)))
@@ -53,9 +52,9 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
                 Only one node contain required ws session, so all nodes should process the message.
                 Another option - create dynamic consumers per session and use 'eventBus.send' method
                  */
-                eventBus.publish(Constants.VERTX_WS_BROADCAST_CHANNEL, JsonObject.mapFrom(record.value()));
+                vertx.eventBus().publish(Constants.VERTX_WS_BROADCAST_CHANNEL, JsonObject.mapFrom(record.value()));
             });
-            eventBus.<JsonObject>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
+            vertx.eventBus().<JsonObject>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
                 final GatewayOutputMessage msg = message.body().mapTo(GatewayOutputMessage.class);
                 log.info("Message from: {}", msg.getSender());
                 srv.send(msg.getRecipient(), msg.getStompChannel(), msg.getMessage());
