@@ -1,21 +1,23 @@
-package io.github.tfkfan.kafka;
+package io.github.tfkfan.kafka.serialization;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.json.jackson.DatabindCodec;
+import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.IOException;
 
-public class GatewayMessageDeserializer implements Deserializer<GatewayMessage> {
+@RequiredArgsConstructor
+public abstract class BaseDeserializer<T> implements Deserializer<T> {
+    private final Class<T> clazz;
+
     @Override
-    public GatewayMessage deserialize(String topic, byte[] data) {
+    public T deserialize(String topic, byte[] data) {
         try {
             if (data == null)
                 return null;
 
-            return DatabindCodec.mapper().readValue(data, GatewayMessage.class);
+            return DatabindCodec.mapper().readValue(data, clazz);
         } catch (IOException e) {
             throw new SerializationException("Error when serializing GatewayKafkaMessage to byte[] due to json processing error: " + e.getMessage(), e);
         }

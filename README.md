@@ -37,4 +37,10 @@ Recipient is UUID ws session indentifier printed in server console when new clie
 
 ## Requirements
 
+### Kafka topic retention
 All kafka topic used by websocket gateway should be adjusted with low retention.ms. One minute is enough
+
+### Environment variables
+Following variables should be provided:
+- KAFKA_BOOTSTRAPSERVERS_ENV - optional, required for cloud setup
+- APP_INPUT_MAPPING_ENV - required for stomp-kafka input mapping. Format: "/stomp_channel1:kafka_topic1","/stomp_channel2:kafka_topic2"

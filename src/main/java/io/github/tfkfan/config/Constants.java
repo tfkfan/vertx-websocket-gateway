@@ -1,6 +1,7 @@
 package io.github.tfkfan.config;
 
 public interface Constants {
+    String DIVIDER = ":";
     String HEALTH_PATH = "/health";
     String READINESS_PATH = "/readiness";
     String WEBSOCKET_PATH = "/ws";
@@ -12,10 +13,11 @@ public interface Constants {
 
     String VERTX_WS_BROADCAST_CHANNEL = "ws.broadcast.channel";
     String KAFKA_WEBSOCKET_OUTPUT_TOPIC = "websocket_gateway_output_topic";
-    String KAFKA_WEBSOCKET_INPUT_TOPIC = "websocket_gateway_input_topic";
-    String STOMP_INPUT_CHANNEL = "/example_input";
+    String STOMP_DEFAULT_INPUT_CHANNEL = "/example_input";
+    String KAFKA_DEFAULT_INPUT_TOPIC = "ebsocket_gateway_example_input_topic";
 
     String KAFKA_BOOTSTRAPSERVERS_ENV = "KAFKA_BOOTSTRAPSERVERS";
+    String APP_INPUT_MAPPING_ENV = "APP_INPUT_STOMP_KAFKA_MAPPING";
 
     String KAFKA_KEY_SERIALIZER_PROP = "key.serializer";
     String KAFKA_VALUE_SERIALIZER_PROP = "value.serializer";
