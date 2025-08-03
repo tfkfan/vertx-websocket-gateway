@@ -47,6 +47,11 @@ Notice, input messages are not conceived to be responded
 
 Recipient is UUID ws session indentifier printed in server console when new client is connected
 
+## Metrics
+
+Prometheus metrics are enabled by default and available at /prometheus endpoint
+JSON-encoded metrics are available at /metrics
+
 ## Requirements
 
 ### Kafka topic retention
