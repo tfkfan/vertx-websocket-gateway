@@ -36,8 +36,7 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
     public void start(Promise<Void> startPromise) {
         try {
             final EventBus eventBus = vertx.eventBus();
-            final JsonObject config = config();
-            final JsonObject kafkaProps = config.getJsonObject(Constants.KAFKA_PROP);
+            final JsonObject kafkaProps = config().getJsonObject(Constants.KAFKA_PROP);
             final Map<String, String> appInputMapping = config()
                     .getJsonArray(Constants.APP_INPUT_MAPPING_ENV, new JsonArray().add("%s:%s".formatted(Constants.STOMP_DEFAULT_INPUT_CHANNEL, Constants.KAFKA_DEFAULT_INPUT_TOPIC)))
                     .stream()
@@ -45,8 +44,8 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
                     .map(it -> ((String) it).split(Constants.DIVIDER))
                     .collect(Collectors.toMap(it -> it[0], it -> it[1]));
             srv = new StompWebsocketAdapterImpl(vertx, Constants.WEBSOCKET_PATH);
-            kafkaConsumer = new GatewayKafkaConsumer(vertx, config, kafkaProps.getString(Constants.BOOTSTRAP_SERVERS_PROP));
-            kafkaProducer = new GatewayKafkaProducer(vertx, config, kafkaProps.getString(Constants.BOOTSTRAP_SERVERS_PROP));
+            kafkaConsumer = new GatewayKafkaConsumer(vertx, config(), kafkaProps.getString(Constants.BOOTSTRAP_SERVERS_PROP));
+            kafkaProducer = new GatewayKafkaProducer(vertx, config(), kafkaProps.getString(Constants.BOOTSTRAP_SERVERS_PROP));
 
             kafkaConsumer.subscribe(Constants.KAFKA_WEBSOCKET_OUTPUT_TOPIC, record -> {
                 /*
