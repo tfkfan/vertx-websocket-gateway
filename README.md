@@ -61,4 +61,4 @@ All kafka topic used by websocket gateway should be adjusted with low retention.
 ### Environment variables
 Following variables should be provided:
 - KAFKA_BOOTSTRAPSERVERS - optional, required for cloud setup
-- APP_INPUT_MAPPING - required for stomp-kafka input mapping. Format: "/stomp_channel1:kafka_topic1","/stomp_channel2:kafka_topic2"
+- APP_INPUT_STOMP_KAFKA_MAPPING - required for stomp-kafka input mapping. Format: "/stomp_channel1:kafka_topic1","/stomp_channel2:kafka_topic2"
