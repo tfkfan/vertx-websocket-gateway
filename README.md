@@ -10,6 +10,8 @@ Features:
 * Apache kafka (for interservice communication)
 * Vert.X cluster
 * Monitoring (micrometer, prometheus)
+* Changelog.md generation (for cicd/release process)
+* Conventional commits
 
 ## Usage
 

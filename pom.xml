@@ -13,6 +13,7 @@
         <vertx.version>5.0.1</vertx.version>
         <lombok.version>1.18.30</lombok.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -94,6 +95,7 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -102,6 +104,94 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.rudikershaw.gitbuildhook</groupId>
+                <artifactId>git-build-hook-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <gitConfig>
+                        <core.hooksPath>.githooks</core.hooksPath>
+                        <hooks.verify-author.disabled>true</hooks.verify-author.disabled>
+                        <hooks.excluded-strings.disabled>true</hooks.excluded-strings.disabled>
+                        <hooks.message-format.message>Формат сообщения должен соответствовать конвенции коммитов
+                        </hooks.message-format.message>
+                        <hooks.message-format.regex>
+                            ^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\(.+\))?!?: .+$
+                        </hooks.message-format.regex>
+                    </gitConfig>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>initialize</goal>
+                            <goal>configure</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jcc-report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                    <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <includeOnlyProperties>
+                        <includeOnlyProperty>^git.commit.id.abbrev$</includeOnlyProperty>
+                        <includeOnlyProperty>^git.commit.id.describe$</includeOnlyProperty>
+                        <includeOnlyProperty>^git.branch$</includeOnlyProperty>
+                    </includeOnlyProperties>
+                </configuration>
+            </plugin>
+            <!-- На Windows запускается с максимальной версией 0.22.8-->
+            <plugin>
+                <groupId>team.yi.maven.plugin</groupId>
+                <artifactId>maven-semantic-gitlog</artifactId>
+                <version>0.22.8</version>
+                <configuration>
+                    <fileSets>
+                        <fileSet>
+                            <target>${project.basedir}/CHANGELOG.md</target>
+                            <template>${project.basedir}/release/CHANGELOG.mustache</template>
+                        </fileSet>
+                    </fileSets>
+                    <jsonFile>${project.basedir}/CHANGELOG.json</jsonFile>
+                    <updateProjectVersion>false</updateProjectVersion>
+                    <issueUrlTemplate>${project.scm.url}/issues/:issueId</issueUrlTemplate>
+                    <commitUrlTemplate>${project.scm.url}/commit/:commitId</commitUrlTemplate>
+                    <mentionUrlTemplate>https://github.com/:username</mentionUrlTemplate>
                 </configuration>
             </plugin>
         </plugins>
