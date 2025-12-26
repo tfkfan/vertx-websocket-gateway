@@ -11,4 +11,5 @@ public class GatewayOutputMessage {
     private String message;
     private String createdAt;
     private String recipient;
+    public static final String BROADCAST = "#BROADCAST";
 }

@@ -4,5 +4,5 @@ import io.vertx.ext.stomp.ServerFrame;
 
 @FunctionalInterface
 public interface StompMessageConsumer {
-    void onMessage(ServerFrame serverFrame);
+    void onMessage(String webSocketSessionId, String id, ServerFrame serverFrame);
 }

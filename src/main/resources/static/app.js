@@ -5,7 +5,7 @@ var url = "ws://localhost:8080/ws";
 var client = Stomp.client(url);
 
 submitBtn.onclick = (evt) => {
-    client.send("/example_input", {}, wsInputTextArea.value);
+    client.send("/example_input", {"email":"test_email@outlook.com"}, wsInputTextArea.value);
     wsInputTextArea.value = ""
 }
 

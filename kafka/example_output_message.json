@@ -3,5 +3,5 @@
   "stompChannel": "/example_output",
   "message": "message sample",
   "createdAt": "...",
-  "recipient": "0a32e82b-45e9-4250-b430-e4acb4980746"
+  "recipient": "#BROADCAST"
 }

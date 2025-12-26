@@ -10,7 +10,6 @@ import io.github.tfkfan.stomp.impl.StompWebsocketAdapterImpl;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
@@ -42,7 +41,7 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
                     .filter(it -> it instanceof String)
                     .map(it -> ((String) it).split(Constants.DIVIDER))
                     .collect(Collectors.toMap(it -> it[0], it -> it[1]));
-            srv = new StompWebsocketAdapterImpl(vertx, Constants.WEBSOCKET_PATH);
+            srv = new StompWebsocketAdapterImpl(vertx, config(), Constants.WEBSOCKET_PATH);
             kafkaConsumer = new GatewayKafkaConsumer(vertx, config(), kafkaProps.getString(Constants.BOOTSTRAP_SERVERS_PROP));
             kafkaProducer = new GatewayKafkaProducer(vertx, config(), kafkaProps.getString(Constants.BOOTSTRAP_SERVERS_PROP));
 
@@ -57,10 +56,16 @@ public final class WebsocketGatewayVerticle extends AbstractVerticle {
             vertx.eventBus().<JsonObject>consumer(Constants.VERTX_WS_BROADCAST_CHANNEL, message -> {
                 final GatewayOutputMessage msg = message.body().mapTo(GatewayOutputMessage.class);
                 log.info("Message from: {}", msg.getSender());
+                if (GatewayOutputMessage.BROADCAST.equals(msg.getRecipient())) {
+                    srv.broadcast(msg.getStompChannel(), msg.getMessage());
+                    return;
+                }
                 srv.send(msg.getRecipient(), msg.getStompChannel(), msg.getMessage());
             });
             appInputMapping.forEach((key, value) -> {
-                srv.subscribe(key, (frame) -> kafkaProducer.send(value, frame.frame().getBodyAsString()));
+                srv.subscribe(key, (webSocketSessionId, id, frame) ->
+                        kafkaProducer.send(value, frame.frame().getBodyAsString())
+                );
                 log.info("Application mapping stomp {} to kafka {} has been set", key, value);
             });
             srv.meterBinder().bindTo(BackendRegistries.getDefaultNow());

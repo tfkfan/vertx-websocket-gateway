@@ -10,6 +10,8 @@ public interface StompWebsocketAdapter {
 
     void send(String session, String destination, String message);
 
+    void send(String id, String webSocketSessionId, String destination, Object message);
+
     void broadcast(String destination, String message);
 
     HttpServer initialize(HttpServer server);
